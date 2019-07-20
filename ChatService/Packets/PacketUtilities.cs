@@ -21,7 +21,7 @@ namespace ChatService.Packets
 
     public static class PacketUtilities
     {
-        public const int PACKET_SIZE = 512;
+        public const int PACKET_SIZE = PacketUtilities.PACKET_SIZE;
 
         public static byte[] Build<T>(T protocolObject) where T : ProtocolObject.BaseProtocolObject
         {
