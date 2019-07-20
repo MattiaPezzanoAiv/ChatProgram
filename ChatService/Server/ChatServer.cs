@@ -5,6 +5,7 @@ using System.Threading;
 using System.Net.Sockets;
 using ChatService.Log;
 using ChatService.Packets;
+using ChatService.Room;
 
 namespace ChatService.Server
 {
@@ -13,6 +14,7 @@ namespace ChatService.Server
         private bool exit = false;
 
         private PacketMap<Packet, ChatClientData> packetsSupportedMap;
+        private Dictionary<string, ChatRoom> activeRoomsByName;   //room name, room
 
         //implement command executor in client
         //try to generalize the shared fields
@@ -34,14 +36,72 @@ namespace ChatService.Server
             clientsConnected = new List<ChatClientData>();
             clientsConnectedDic = new Dictionary<Socket, ChatClientData>();
 
+            activeRoomsByName = new Dictionary<string, ChatRoom>();
+
             CommandExecutor = new CommandExecutor();
 
             packetsSupportedMap = new PacketMap<Packet, ChatClientData>();
-            packetsSupportedMap[Protocol.ASK_ALL_CONNECTED] = this.AskAllConnected;
-            packetsSupportedMap[Protocol.MESSAGE_SENT] = this.MessageSent;
+            packetsSupportedMap[Protocol.ASK_ALL_CONNECTED] = this.AskAllConnectedReceived;
+            packetsSupportedMap[Protocol.MESSAGE_SENT] = this.MessageSentReceived;
             packetsSupportedMap[Protocol.QUIT] = this.QuitReceived;
             packetsSupportedMap[Protocol.JOIN] = this.JoinReceived;
+
+            packetsSupportedMap[Protocol.CREATE_ROOM] = this.CreateRoomReceived;
+            packetsSupportedMap[Protocol.CLOSE_ROOM] = this.CloseRoomReceived;
         }
+
+        #region ROOM
+        public List<ChatRoom> GetActiveRooms()
+        {
+            return (from room in activeRoomsByName select room.Value).ToList();
+        }
+        public List<string> GetRoomMembers(string roomName)
+        {
+            return new List<string>(RoomFromName(roomName).Members);
+        }
+        public bool RoomExistsByName(string roomName)
+        {
+            return activeRoomsByName.ContainsKey(roomName);
+        }
+        /// <summary>
+        /// Check if the given room's host is the same given host
+        /// </summary>
+        bool RoomHostMatch(string roomName, string roomHost)
+        {
+            if (activeRoomsByName.ContainsKey(roomName))
+                return activeRoomsByName[roomName].Host == roomHost;
+            return false;
+        }
+        ChatRoom RoomFromName(string roomName)
+        {
+            if (activeRoomsByName.ContainsKey(roomName))
+                return activeRoomsByName[roomName];
+            return null;
+        }
+        ChatRoom CreateRoom(string roomName, string roomHost, bool isPublic = false)
+        {
+            var room = new ChatRoom(isPublic, roomName, roomHost);
+            activeRoomsByName.Add(roomName, room);
+            return room;
+        }
+        void DeleteRoom(string roomName)
+        {
+            activeRoomsByName.Remove(roomName);
+        }
+        void ClientJoinRoom(string roomName, string clientName)
+        {
+            if (!RoomExistsByName(roomName))
+            {
+                ChatLog.Error("Room " + roomName + " does not exists");
+                return;
+            }
+
+            var room = RoomFromName(roomName);
+            room.Members.Add(clientName);
+
+            //todo: send client joined
+        }
+        #endregion
 
 
         #region INTERNAL_USE
@@ -110,7 +170,6 @@ namespace ChatService.Server
             return null;
         }
         #endregion
-
 
         /// <summary>
         /// Start the server systems and threads
@@ -204,7 +263,7 @@ namespace ChatService.Server
                     ChatLog.Info("** Waiting command **");
                     string command = Console.ReadLine();
 
-                    scheduler.Schedule(() => 
+                    scheduler.Schedule(() =>
                     {
                         var executed = CommandExecutor.Execute(command, scheduler);
                         if (!executed)
@@ -229,7 +288,7 @@ namespace ChatService.Server
         }
 
         #region COMMANDS_HANDLING
-        void AskAllConnected(Packet receivedPacket, ChatClientData client)
+        void AskAllConnectedReceived(Packet receivedPacket, ChatClientData client)
         {
             var packet = PacketUtilities.GetProtocolObject<ProtocolObject.Join>(receivedPacket);
             if (!client.HasJoined)
@@ -243,7 +302,7 @@ namespace ChatService.Server
                 names = (from c in clientsConnected where c.Name != client.Name && c.Name != "" select c.Name).ToArray()    //empty names are not joined
             }));
         }
-        void MessageSent(Packet receivedPacket, ChatClientData client)
+        void MessageSentReceived(Packet receivedPacket, ChatClientData client)
         {
             var message = PacketUtilities.GetProtocolObject<ProtocolObject.Message>(receivedPacket);
             //TO DO IMPLEMENT A MESSAGE FOR NOT DELIVERED MESSAGES
@@ -329,6 +388,86 @@ namespace ChatService.Server
                 //send back to all joined clients that a new client is connected
                 SendMessageToAllJoined(bytes);
             }
+        }
+
+        void CreateRoomReceived(Packet receivedPacket, ChatClientData client)
+        {
+            var createRoom = PacketUtilities.GetProtocolObject<ProtocolObject.CreateRoom>(receivedPacket);
+
+            bool _success = true;
+            string _message = "";
+
+            if (RoomExistsByName(createRoom.roomName))
+            {
+                _success = false;
+                _message = "A room with the given name alredy exists.";
+            }
+
+            ChatLog.Info("*** CREATE_ROOM received --- name -> " + createRoom.roomName + " --- host -> " + createRoom.roomHost + " --- success -> " + _success);
+            if (!_success)
+                ChatLog.Info("      REASON -> " + _message);
+
+            if (_success)
+                CreateRoom(createRoom.roomName, createRoom.roomHost, false);   //fill dala structure
+
+            byte[] response = PacketUtilities.Build(new ProtocolObject.RoomCreated()
+            {
+                roomName = createRoom.roomName,
+                roomHost = createRoom.roomHost,
+                success = _success,
+                message = _message
+            });
+            client.Send(response);
+        }
+        void CloseRoomReceived(Packet receivedPacket, ChatClientData client)
+        {
+            var closeRoom = PacketUtilities.GetProtocolObject<ProtocolObject.CloseRoom>(receivedPacket);
+
+            bool _success = true;
+            string _message = "";
+
+            //room exists
+            if (!RoomExistsByName(closeRoom.roomName))
+            {
+                _success = false;
+                _message = "A room with the given name does not exist.";
+            }
+            //you're the host
+            else if (!RoomHostMatch(closeRoom.roomName, client.Name))
+            {
+                _success = false;
+                _message = "You're not the host, you can't close the room";
+            }
+
+            string roomHost = "Nothing";
+            if (activeRoomsByName.ContainsKey(closeRoom.roomName))
+                roomHost = activeRoomsByName[closeRoom.roomName].Host;
+
+            ChatLog.Info("CLOSE_ROOM received success? -> " + _success + " --- room name -> " + closeRoom.roomName + " --- message -> " + _message);
+          
+            byte[] response = PacketUtilities.Build(new ProtocolObject.RoomClosed()
+            {
+                roomName = closeRoom.roomName,
+                roomHost = roomHost,  //set host then the host client can decide if he's the host or not
+                success = _success,
+                message = _message
+            });
+            client.Send(response);
+
+            if (_success)
+            {
+                //if succesfully closed, notify all memebers
+                var room = RoomFromName(closeRoom.roomName);
+                foreach (var c in room.Members)
+                {
+                    ChatClientData chatClient = GetClientByName(c);
+                    chatClient.Send(response);
+                }
+            }
+
+            if (_success)
+                DeleteRoom(closeRoom.roomName);
+
         }
         #endregion
     }

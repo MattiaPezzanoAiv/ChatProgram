@@ -64,5 +64,55 @@
 
             public override Protocol Proto => Protocol.SERVER_CLOSED;
         }
+
+
+        #region ROOMS
+        public class CreateRoom : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.CREATE_ROOM;
+
+            public string roomName;
+            public string roomHost;
+        }
+        public class RoomCreated : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_CREATED;
+
+            public string roomName;
+            public string roomHost;
+            public bool success;    //if false room is not created
+            public string message;
+        }
+
+        public class CloseRoom : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.CLOSE_ROOM;
+
+            public string roomName;
+        }
+        public class RoomClosed : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_CLOSED;
+
+            public string roomName;
+            public string roomHost;
+            public bool success;
+            public string message;
+        }
+
+        public class LeaveRoom : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.LEAVE_ROOM;
+
+            public string roomName;
+        }
+        public class RoomLeft : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_LEFT;
+
+            public string roomName;
+            public bool success;
+        }
+        #endregion
     }
 }

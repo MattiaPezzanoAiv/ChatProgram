@@ -1,6 +1,8 @@
 ﻿using System;
 using ChatService.Log;
 using ChatService.Packets;
+using System.Collections.Generic;
+using ChatService.Room;
 /*
  
     how to implement in unity
@@ -25,6 +27,8 @@ namespace ChatService.Client
         private bool shouldStopListening;
 
         private PacketMap<Packet, object> packetsSupportedMap;
+
+        public Dictionary<string, ChatRoom> JoinedRooms { get; private set; }   //name, obj
 
         /// <summary>
         /// Called whe a client join the system 
@@ -58,6 +62,7 @@ namespace ChatService.Client
             this.logEnabled = logEnabled;
 
             CommandExecutor = new CommandExecutor();
+            JoinedRooms = new Dictionary<string, ChatRoom>();
 
             packetsSupportedMap = new PacketMap<Packet, object>();
             packetsSupportedMap[Protocol.CLIENT_JOINED] = ReceiveClientJoined;
@@ -65,6 +70,9 @@ namespace ChatService.Client
             packetsSupportedMap[Protocol.MESSAGE_RECEIVED] = ReceiveMessageReceived;
             packetsSupportedMap[Protocol.GET_ALL_CONNECTED] = ReceiveGetAllConnected;
             packetsSupportedMap[Protocol.SERVER_CLOSED] = ReceiveServerClosed;
+
+            packetsSupportedMap[Protocol.ROOM_CREATED] = ReceiveRoomCreated;
+            packetsSupportedMap[Protocol.ROOM_CLOSED] = ReceiveRoomClosed;
         }
 
         public void UpdateScheduler()
@@ -275,6 +283,36 @@ namespace ChatService.Client
             if (onServerClosed != null)
                 scheduler.Schedule(() => onServerClosed.Invoke(p));
         }
+        void ReceiveRoomCreated(Packet packet, object arg)
+        {
+            var p = PacketUtilities.GetProtocolObject<ProtocolObject.RoomCreated>(packet);
+
+            if (logEnabled)
+            {
+                ChatLog.Info("Room created success? -> " + p.success + " --- Room name -> " + p.roomName + " --- Room host -> " + p.roomHost);
+                ChatLog.Info("message -> " + p.message);
+            }
+
+            //todo implement callback
+        }
+        void ReceiveRoomClosed(Packet packet, object arg)
+        {
+            var p = PacketUtilities.GetProtocolObject<ProtocolObject.RoomClosed>(packet);
+
+            if (logEnabled)
+            {
+                ChatLog.Info("Room closed success? -> " + p.success + " --- Room name -> " + p.roomName);
+                ChatLog.Info("message -> " + p.message);
+
+                if (this.clientName == p.roomHost)
+                    ChatLog.Info("I'm the host, should act differently");
+            }
+
+            //todo implement callback
+
+            if (JoinedRooms.ContainsKey(p.roomName))
+                JoinedRooms.Remove(p.roomName);
+        }
         #endregion
 
         #region MESSAGES_TO_SEND
@@ -344,6 +382,37 @@ namespace ChatService.Client
             }
 
             var bytes = PacketUtilities.Build(new ProtocolObject.AskAllConnected() { });
+            tcpLayer.Send(bytes);
+        }
+
+        public void CreateRoom(string roomName)
+        {
+            if (!tcpLayer.Connected)
+            {
+                ChatLog.Info("CLIENT NOT CONNECTED");
+                return;
+            }
+
+            var bytes = PacketUtilities.Build(new ProtocolObject.CreateRoom()
+            {
+                roomHost = this.clientName,
+                roomName = roomName
+            });
+            tcpLayer.Send(bytes);
+        }
+
+        public void CloseRoom(string roomName)
+        {
+            if (!tcpLayer.Connected)
+            {
+                ChatLog.Info("CLIENT NOT CONNECTED");
+                return;
+            }
+
+            var bytes = PacketUtilities.Build(new ProtocolObject.CloseRoom()
+            {
+                roomName = roomName,
+            });
             tcpLayer.Send(bytes);
         }
         #endregion

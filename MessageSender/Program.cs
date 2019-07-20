@@ -62,9 +62,41 @@ namespace MessageSender
                             client.SendMessage(user, message);
                             break;
                         }
-                    case "ask_joined":
+                    case "ask joined":
                         {
                             client.AskForConnectedUsers();
+                            break;
+                        }
+                    case "create room":
+                        {
+                            ChatLog.Info("type room's name:");
+                            string roomName = Console.ReadLine();
+                            client.CreateRoom(roomName);
+                            break;
+                        }
+                    case "close room":
+                        {
+                            ChatLog.Info("type room's name:");
+                            string roomName = Console.ReadLine();
+                            client.CloseRoom(roomName);
+
+                            break;
+                        }
+                    case "members":
+                        {
+                            ChatLog.Info("type room's name:");
+                            string roomName = Console.ReadLine();
+
+                            if (client.JoinedRooms.ContainsKey(roomName))
+                            {
+                                foreach (var m in client.JoinedRooms[roomName].Members)
+                                {
+                                    ChatLog.Info(m);
+                                }
+                            }
+                            else
+                                ChatLog.Warning("Room not joined");
+
                             break;
                         }
                     default:

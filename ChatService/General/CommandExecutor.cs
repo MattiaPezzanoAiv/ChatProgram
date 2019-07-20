@@ -44,5 +44,11 @@ namespace ChatService
 
             return true;
         }
+
+
+        public List<string> GetAllAvailableCommands()
+        {
+            return (from c in shellCommands select c.Key).ToList();
+        }
     }
 }
