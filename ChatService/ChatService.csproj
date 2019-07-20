@@ -45,19 +45,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChatCommands.cs" />
-    <Compile Include="ChatNetworkObject.cs" />
-    <Compile Include="ChatTcpLayer.cs" />
+    <Compile Include="General\ChatNetworkObject.cs" />
+    <Compile Include="General\ChatTcpLayer.cs" />
     <Compile Include="Client\ChatClient.cs" />
-    <Compile Include="CommandExecutor.cs" />
+    <Compile Include="General\CommandExecutor.cs" />
     <Compile Include="Packets\JsonHandlers\ProtocolObject.cs" />
     <Compile Include="Packets\Packet.cs" />
     <Compile Include="Packets\PacketMap.cs" />
     <Compile Include="Packets\PacketUtilities.cs" />
     <Compile Include="Utilities\ChatLog.cs" />
-    <Compile Include="Utilities\ChatPacketBuilder.cs" />
-    <Compile Include="Utilities\ChatPacketParser.cs" />
-    <Compile Include="Utilities\ChatPacketUtilities.cs" />
     <Compile Include="Server\ChatClientData.cs" />
     <Compile Include="Server\ChatServer.cs" />
     <Compile Include="Program.cs" />
