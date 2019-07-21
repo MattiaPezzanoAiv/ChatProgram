@@ -13,6 +13,8 @@ namespace ChatService
     {
         static void Main(string[] args)
         {
+            Console.SetWindowSize(100, 10);
+
             ChatLog.AddChannel(new ChatLogConsoleChannel());
             ChatLog.Info("Server running.");
             ChatServer server = new ChatServer();

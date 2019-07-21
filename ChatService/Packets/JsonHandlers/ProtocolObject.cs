@@ -1,4 +1,6 @@
-﻿namespace ChatService.Packets
+﻿using System.Collections.Generic;
+
+namespace ChatService.Packets
 {
     public class ProtocolObject
     {
@@ -111,7 +113,27 @@
             public override Protocol Proto => Protocol.ROOM_LEFT;
 
             public string roomName;
+            public string userName;
             public bool success;
+        }
+
+        public class InviteClient : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.INVITE_CLIENT;
+
+            public string newUserName;
+            public string roomName;
+        }
+        public class RoomJoined : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_JOINED;
+
+            public bool success;
+            public string sender;
+            public string newUserName;
+            public string roomName;
+            public List<string> members;
+            public string message;
         }
         #endregion
     }

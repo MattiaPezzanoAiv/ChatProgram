@@ -21,6 +21,8 @@ namespace ChatService.Packets
         ROOM_CREATED = 51,
         CLOSE_ROOM = 52,
         ROOM_CLOSED = 53,
+        INVITE_CLIENT = 54,
+        ROOM_JOINED = 55,
         LEAVE_ROOM = 56,
         ROOM_LEFT = 57,
 

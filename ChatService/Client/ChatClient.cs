@@ -73,6 +73,8 @@ namespace ChatService.Client
 
             packetsSupportedMap[Protocol.ROOM_CREATED] = ReceiveRoomCreated;
             packetsSupportedMap[Protocol.ROOM_CLOSED] = ReceiveRoomClosed;
+            packetsSupportedMap[Protocol.ROOM_JOINED] = ReceiveRoomJoined;
+            packetsSupportedMap[Protocol.ROOM_LEFT] = ReceiveRoomLeft;
         }
 
         public void UpdateScheduler()
@@ -293,6 +295,8 @@ namespace ChatService.Client
                 ChatLog.Info("message -> " + p.message);
             }
 
+            if (p.success)
+                JoinedRooms.Add(p.roomName, new ChatRoom(false, p.roomName, p.roomHost));
             //todo implement callback
         }
         void ReceiveRoomClosed(Packet packet, object arg)
@@ -312,6 +316,69 @@ namespace ChatService.Client
 
             if (JoinedRooms.ContainsKey(p.roomName))
                 JoinedRooms.Remove(p.roomName);
+        }
+        void ReceiveRoomJoined(Packet packet, object arg)
+        {
+            var p = PacketUtilities.GetProtocolObject<ProtocolObject.RoomJoined>(packet);
+
+            if (logEnabled)
+            {
+                ChatLog.Info("Room joined success? -> " + p.success + " --- Room name -> " + p.roomName);
+                ChatLog.Info("message -> " + p.message);
+
+                if (this.clientName == p.sender)
+                    ChatLog.Info("I'm the host, should show new client");
+            }
+
+            //todo implement callback
+
+            if (p.sender == this.clientName) //it's me
+            {
+                if (p.success)
+                {
+                    ChatLog.Info("ADD CLIENT JOINED -> " + p.newUserName);
+                    JoinedRooms[p.roomName].Members.Add(p.newUserName);
+                }
+                else
+                {
+                    ChatLog.Info("CLIENT NOT JOINED -> " + p.newUserName);
+                }
+            }
+            else
+            {
+                //new user joined
+                if (p.success)
+                    JoinedRooms.Add(p.roomName, new ChatRoom(false, p.roomName, p.sender));
+                //not possible not success (message will be not sent)
+            }
+
+        }
+        void ReceiveRoomLeft(Packet packet, object arg)
+        {
+            var p = PacketUtilities.GetProtocolObject<ProtocolObject.RoomLeft>(packet);
+
+            if (logEnabled)
+            {
+                ChatLog.Info("Room left success? -> " + p.success + " --- Room name -> " + p.roomName);
+            }
+
+            //todo implement callback
+
+            if (p.userName == this.clientName) //it's me
+            {
+                if (p.success)
+                {
+                    ChatLog.Info("ROOM LEFT -> " + p.roomName);
+                    JoinedRooms.Remove(p.roomName);
+                    //callback for me
+                }
+            }
+            else
+            {
+                //new user joined
+                if (p.success)
+                    JoinedRooms[p.roomName].Members.Remove(p.userName);
+            }
         }
         #endregion
 
@@ -384,7 +451,10 @@ namespace ChatService.Client
             var bytes = PacketUtilities.Build(new ProtocolObject.AskAllConnected() { });
             tcpLayer.Send(bytes);
         }
-
+        /// <summary>
+        /// Send the room creation message to the server (you'll be the only user joined and the host)
+        /// </summary>
+        /// <param name="roomName"></param>
         public void CreateRoom(string roomName)
         {
             if (!tcpLayer.Connected)
@@ -400,7 +470,10 @@ namespace ChatService.Client
             });
             tcpLayer.Send(bytes);
         }
-
+        /// <summary>
+        /// Send the close room request, if success the room will be closed and all clients kicked out (can 
+        /// </summary>
+        /// <param name="roomName"></param>
         public void CloseRoom(string roomName)
         {
             if (!tcpLayer.Connected)
@@ -414,6 +487,58 @@ namespace ChatService.Client
                 roomName = roomName,
             });
             tcpLayer.Send(bytes);
+        }
+        /// <summary>
+        /// Send an invite message to antoher specific client
+        /// </summary>
+        /// <param name="roomName"></param>
+        /// <param name="newUser"></param>
+        public void Invite(string roomName, string newUser)
+        {
+            if (!tcpLayer.Connected)
+            {
+                ChatLog.Info("CLIENT NOT CONNECTED");
+                return;
+            }
+
+            if (JoinedRooms.ContainsKey(roomName) && JoinedRooms[roomName].Members.Contains(newUser))
+            {
+                ChatLog.Info("CLIENT ALREDY JOINED");
+                return;
+            }
+
+            var bytes = PacketUtilities.Build(new ProtocolObject.InviteClient()
+            {
+                roomName = roomName,
+                newUserName = newUser
+            });
+            tcpLayer.Send(bytes);
+            ChatLog.Info("JOIN INVITE SENT TO " + newUser + " FOR ROOM " + roomName);
+        }
+        /// <summary>
+        /// Send the request to leave the given room
+        /// </summary>
+        /// <param name="roomName"></param>
+        public void LeaveRoom(string roomName)
+        {
+            if (!tcpLayer.Connected)
+            {
+                ChatLog.Info("CLIENT NOT CONNECTED");
+                return;
+            }
+
+            if (!JoinedRooms.ContainsKey(roomName))
+            {
+                ChatLog.Info("ROOM NOT JOINED");
+                return;
+            }
+
+            var bytes = PacketUtilities.Build(new ProtocolObject.LeaveRoom()
+            {
+                roomName = roomName
+            });
+            tcpLayer.Send(bytes);
+            ChatLog.Info("LEAVE REQUEST SENT FOR ROOM " + roomName);
         }
         #endregion
     }

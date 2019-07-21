@@ -99,6 +99,24 @@ namespace MessageSender
 
                             break;
                         }
+                    case "invite":
+                        {
+                            ChatLog.Info("type room name:");
+                            string room = Console.ReadLine();
+                            ChatLog.Info("type user to invite:");
+                            string user = Console.ReadLine();
+
+                            client.Invite(room, user);
+                            break;
+                        }
+                    case "leave":
+                        {
+                            ChatLog.Info("type room name:");
+                            string room = Console.ReadLine();
+
+                            client.LeaveRoom(room);
+                            break;
+                        }
                     default:
                         ChatLog.Info("   ***Invalid command");
                         break;
