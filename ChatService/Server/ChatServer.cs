@@ -310,28 +310,55 @@ namespace ChatService.Server
             //TO DO IMPLEMENT A MESSAGE FOR NOT DELIVERED MESSAGES
             ChatLog.Info("To -> " + message.destinationUser + " --- Message -> " + message.message);   //print anyway
 
+            bool isToRoom = message.isRoom;
+
             //if not exist ignore the message
-            if (!ClientExists(message.destinationUser))
+            if (!isToRoom && !ClientExists(message.destinationUser))
             {
                 ChatLog.Info("-- Message ignored because the destination user is not connected -> " + message.destinationUser);
                 return;
             }
-            if (!client.HasJoined)
+            if (!isToRoom && !client.HasJoined)
             {
                 ChatLog.Info("-- Rejected MESSAGE command by a not joined client -> " + client.Socket.RemoteEndPoint.ToString());
                 return;
             }
-
-            //send message to the other client and confirm 
-            var destinationClient = GetClientByName(message.destinationUser);
-            if (destinationClient != null)
+            if (isToRoom && !RoomExistsByName(message.destinationUser))
             {
-                destinationClient.Socket.Send(PacketUtilities.Build(new ProtocolObject.MessageReceived()
-                {
-                    senderUser = client.Name,
-                    message = message.message //LOL
-                }));
+                ChatLog.Info("-- Rejected MESSAGE command to a room because the room does not exists -> " + message.destinationUser);
+                return;
             }
+
+            byte[] response = PacketUtilities.Build(new ProtocolObject.MessageReceived()
+            {
+                senderUser = client.Name,
+                roomName = message.destinationUser, //empty if is not a room
+                message = message.message //LOL
+            });
+
+            if (isToRoom)
+            {
+                ChatRoom room = RoomFromName(message.destinationUser);
+                foreach (var m in room.Members)
+                {
+                    ChatClientData c = GetClientByName(m);
+                    c.Send(response);
+                    ChatLog.Info("MESSAGE SENT TO -> " + m);
+                }
+                var host = GetClientByName(room.Host);
+                host.Send(response);
+                ChatLog.Info("MESSAGE SENT TO -> " + host.Name);
+            }
+            else
+            {
+                //send message to the other client and confirm 
+                var destinationClient = GetClientByName(message.destinationUser);
+                if (destinationClient != null)
+                {
+                    destinationClient.Socket.Send(response);
+                }
+            }
+
         }
         void QuitReceived(Packet receivedPacket, ChatClientData client)
         {
@@ -557,7 +584,7 @@ namespace ChatService.Server
             client.Send(response);
 
             //is success notify all joined
-            if(_success)
+            if (_success)
             {
                 room.Members.Remove(client.Name);   //remove user user
                 GetClientByName(room.Host).Send(response); //host is not in the members

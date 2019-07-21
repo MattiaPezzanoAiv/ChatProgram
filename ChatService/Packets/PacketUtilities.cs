@@ -25,6 +25,7 @@ namespace ChatService.Packets
         ROOM_JOINED = 55,
         LEAVE_ROOM = 56,
         ROOM_LEFT = 57,
+        ROOM_MESSAGE_RECEIVED = 58,
 
         SERVER_CLOSED = 100
     }

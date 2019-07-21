@@ -38,6 +38,7 @@ namespace ChatService.Packets
         }
         public class Message : BaseProtocolObject
         {
+            public bool isRoom;
             public string destinationUser;
             public string message;
 
@@ -46,6 +47,7 @@ namespace ChatService.Packets
         public class MessageReceived : BaseProtocolObject
         {
             public string senderUser;
+            public string roomName;
             public string message;
 
             public override Protocol Proto => Protocol.MESSAGE_RECEIVED;

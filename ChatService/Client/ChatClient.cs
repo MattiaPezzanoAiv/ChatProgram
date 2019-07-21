@@ -250,8 +250,19 @@ namespace ChatService.Client
 
             if (logEnabled)
             {
-                ChatLog.Info("Message from -> " + p.senderUser);
-                ChatLog.Info("Message -> " + p.message);
+                if (string.IsNullOrEmpty(p.roomName))
+                {
+                    //not a room
+                    ChatLog.Info("Message from -> " + p.senderUser);
+                    ChatLog.Info("Message -> " + p.message);
+                }
+                else
+                {
+                    ChatLog.Info("ROOM -> " + p.roomName);
+                    ChatLog.Info("      Sender -> " + p.senderUser);
+                    ChatLog.Info("      Message -> " + p.message);
+                }
+                
             }
 
             if (onMessageReceived != null)
@@ -422,7 +433,7 @@ namespace ChatService.Client
         /// </summary>
         /// <param name="to">The user which is the destination of the message. You can retrieve the list of connected users with ask_ message</param>
         /// <param name="message">The texts will be sent</param>
-        public void SendMessage(string to, string message)
+        public void SendMessage(string to, string message, bool isRoom)
         {
             if (!tcpLayer.Connected)
             {
@@ -432,6 +443,7 @@ namespace ChatService.Client
 
             var bytes = PacketUtilities.Build(new ProtocolObject.Message()
             {
+                isRoom = isRoom,
                 destinationUser = to,
                 message = message
             });

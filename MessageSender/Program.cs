@@ -59,7 +59,16 @@ namespace MessageSender
                             string user = Console.ReadLine();
                             ChatLog.Info("     type message:");
                             string message = Console.ReadLine();
-                            client.SendMessage(user, message);
+                            client.SendMessage(user, message, false);
+                            break;
+                        }
+                    case "message room":
+                        {
+                            ChatLog.Info("     type destination room:");
+                            string user = Console.ReadLine();
+                            ChatLog.Info("     type message:");
+                            string message = Console.ReadLine();
+                            client.SendMessage(user, message, true);
                             break;
                         }
                     case "ask joined":
