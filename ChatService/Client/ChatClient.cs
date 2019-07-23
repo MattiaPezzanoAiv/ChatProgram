@@ -61,7 +61,6 @@ namespace ChatService.Client
             this.clientName = clientName;
             this.logEnabled = logEnabled;
 
-            CommandExecutor = new CommandExecutor();
             JoinedRooms = new Dictionary<string, ChatRoom>();
 
             packetsSupportedMap = new PacketMap<Packet, object>();
@@ -196,7 +195,24 @@ namespace ChatService.Client
                 ChatLog.Info(ex.Message);
             }
         }
+        public void StartCommandsThread()
+        {
+            new System.Threading.Thread(() =>
+            {
+                while(true)
+                {
+                    ChatLog.Info("** Waiting command **");
+                    string command = Console.ReadLine();
 
+                    scheduler.Schedule(() =>
+                    {
+                        var executed = CommandExecutor.Execute(command, scheduler);
+                        if (!executed)
+                            ChatLog.Warning("Command not executed: Unexisting command -> " + command);
+                    });
+                }
+            }).Start();
+        }
         #endregion
 
         #region MESSAGES_TO_RECEIVE
@@ -250,7 +266,7 @@ namespace ChatService.Client
 
             if (logEnabled)
             {
-                if (string.IsNullOrEmpty(p.roomName))
+                if (string.IsNullOrEmpty(p.roomName) || !JoinedRooms.ContainsKey(p.roomName))
                 {
                     //not a room
                     ChatLog.Info("Message from -> " + p.senderUser);

@@ -38,8 +38,6 @@ namespace ChatService.Server
 
             activeRoomsByName = new Dictionary<string, ChatRoom>();
 
-            CommandExecutor = new CommandExecutor();
-
             packetsSupportedMap = new PacketMap<Packet, ChatClientData>();
             packetsSupportedMap[Protocol.ASK_ALL_CONNECTED] = this.AskAllConnectedReceived;
             packetsSupportedMap[Protocol.MESSAGE_SENT] = this.MessageSentReceived;
@@ -332,7 +330,7 @@ namespace ChatService.Server
             byte[] response = PacketUtilities.Build(new ProtocolObject.MessageReceived()
             {
                 senderUser = client.Name,
-                roomName = message.destinationUser, //empty if is not a room
+                roomName = message.destinationUser,
                 message = message.message //LOL
             });
 
