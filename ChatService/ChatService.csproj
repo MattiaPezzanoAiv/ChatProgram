@@ -53,6 +53,7 @@
     <Compile Include="Packets\Packet.cs" />
     <Compile Include="Packets\PacketMap.cs" />
     <Compile Include="Packets\PacketUtilities.cs" />
+    <Compile Include="Rooms\ChatRoom.cs" />
     <Compile Include="Utilities\ChatLog.cs" />
     <Compile Include="Server\ChatClientData.cs" />
     <Compile Include="Server\ChatServer.cs" />

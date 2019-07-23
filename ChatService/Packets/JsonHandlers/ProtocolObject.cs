@@ -1,4 +1,6 @@
-﻿namespace ChatService.Packets
+﻿using System.Collections.Generic;
+
+namespace ChatService.Packets
 {
     public class ProtocolObject
     {
@@ -36,6 +38,7 @@
         }
         public class Message : BaseProtocolObject
         {
+            public bool isRoom;
             public string destinationUser;
             public string message;
 
@@ -44,6 +47,7 @@
         public class MessageReceived : BaseProtocolObject
         {
             public string senderUser;
+            public string roomName;
             public string message;
 
             public override Protocol Proto => Protocol.MESSAGE_RECEIVED;
@@ -64,5 +68,75 @@
 
             public override Protocol Proto => Protocol.SERVER_CLOSED;
         }
+
+
+        #region ROOMS
+        public class CreateRoom : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.CREATE_ROOM;
+
+            public string roomName;
+            public string roomHost;
+        }
+        public class RoomCreated : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_CREATED;
+
+            public string roomName;
+            public string roomHost;
+            public bool success;    //if false room is not created
+            public string message;
+        }
+
+        public class CloseRoom : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.CLOSE_ROOM;
+
+            public string roomName;
+        }
+        public class RoomClosed : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_CLOSED;
+
+            public string roomName;
+            public string roomHost;
+            public bool success;
+            public string message;
+        }
+
+        public class LeaveRoom : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.LEAVE_ROOM;
+
+            public string roomName;
+        }
+        public class RoomLeft : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_LEFT;
+
+            public string roomName;
+            public string userName;
+            public bool success;
+        }
+
+        public class InviteClient : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.INVITE_CLIENT;
+
+            public string newUserName;
+            public string roomName;
+        }
+        public class RoomJoined : BaseProtocolObject
+        {
+            public override Protocol Proto => Protocol.ROOM_JOINED;
+
+            public bool success;
+            public string sender;
+            public string newUserName;
+            public string roomName;
+            public List<string> members;
+            public string message;
+        }
+        #endregion
     }
 }

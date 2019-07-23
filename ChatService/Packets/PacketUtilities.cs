@@ -16,6 +16,17 @@ namespace ChatService.Packets
         ASK_ALL_CONNECTED = 7,  //client -> server
         GET_ALL_CONNECTED = 8,   //server -> client
 
+
+        CREATE_ROOM = 50,
+        ROOM_CREATED = 51,
+        CLOSE_ROOM = 52,
+        ROOM_CLOSED = 53,
+        INVITE_CLIENT = 54,
+        ROOM_JOINED = 55,
+        LEAVE_ROOM = 56,
+        ROOM_LEFT = 57,
+        ROOM_MESSAGE_RECEIVED = 58,
+
         SERVER_CLOSED = 100
     }
 
