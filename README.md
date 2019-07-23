@@ -1,4 +1,6 @@
 # ChatProgram
+Warning: this is a personal demo and the only purpose is learn how things work.
+
 This is a super simple code (server and client) to manage a chat structure.
 The concept is:
 -The client can see all the connected users
